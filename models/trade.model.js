@@ -11,7 +11,7 @@ const Trade = sequelize.define(
     },
     fromId: {
       type: DataTypes.INTEGER,
-      references: { model: "users", key: "id" },
+      references: { model: "party", key: "id" },
     },
     fromQuantity: {
       type: DataTypes.DECIMAL(10,2),
@@ -27,7 +27,7 @@ const Trade = sequelize.define(
     },
     toId: {
       type: DataTypes.INTEGER,
-      references: { model: "users", key: "id" },
+      references: { model: "party", key: "id" },
     },
     toQuantity: {
       type: DataTypes.DECIMAL(10,2),

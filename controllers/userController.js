@@ -1,6 +1,18 @@
-import { User, Role, UserBalance, CommoditiesStorage, CommoditiesList, sequelize, Trade, Notes, TradeNature, PaymentEnum } from "../models/index.js";
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import {
+  User,
+  Role,
+  UserBalance,
+  CommoditiesStorage,
+  CommoditiesList,
+  sequelize,
+  Trade,
+  Notes,
+  TradeNature,
+  PaymentEnum,
+  Party,
+} from "../models/index.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 // export const getAllUsers = async (req, res) => {
 //   try {
@@ -110,7 +122,17 @@ export const getAllUsers = async (req, res) => {
 export const createUser = async (req, res) => {
   const t = await sequelize.transaction(); // start a transaction
   try {
-    const { username, password,mobile,altMobile,whatApp, role, openingBalance, commoditiesHolding, currencyFormat } = req.body;
+    const {
+      username,
+      password,
+      mobile,
+      altMobile,
+      whatApp,
+      role,
+      openingBalance,
+      commoditiesHolding,
+      currencyFormat,
+    } = req.body;
     console.log("Creating user with data:", req.body);
     // Check if user already exists
     const existingUser = await User.findOne({ where: { username } });
@@ -135,10 +157,10 @@ export const createUser = async (req, res) => {
       {
         // email: email,
         username: username,
-        mobile:mobile,
-        altMobile:altMobile,
-        whatApp:whatApp,
-        openingBalance:openingBalance,
+        mobile: mobile,
+        altMobile: altMobile,
+        whatApp: whatApp,
+        openingBalance: openingBalance,
         password: hashedPassword,
         role: role,
         currencyFormat: currencyFormat,
@@ -159,11 +181,17 @@ export const createUser = async (req, res) => {
     // currencies.map((code) => ({ code })),
 
     if (commoditiesHolding.length > 0) {
-      const commoditiesHoldingIds = commoditiesHolding.map((ch) => ch.commoditiesId);
+      const commoditiesHoldingIds = commoditiesHolding.map(
+        (ch) => ch.commoditiesId
+      );
       const validCommodities = await CommoditiesList.findAll({
         where: { id: commoditiesHoldingIds },
       });
-      console.log("Valid Commodities:", validCommodities.length, commoditiesHolding.length);
+      console.log(
+        "Valid Commodities:",
+        validCommodities.length,
+        commoditiesHolding.length
+      );
       // You can then verify that all requested commodities exist
       if (validCommodities.length !== commoditiesHolding.length) {
         return res.status(400).json({
@@ -207,94 +235,93 @@ export const loginUser = async (req, res) => {
     // Check if user exists
     const user = await User.findOne({ where: { username } });
     if (!user) {
-      return res.status(400).json({ error: 'Invalid username or password' });
+      return res.status(400).json({ error: "Invalid username or password" });
     }
 
     // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid email or password' });
+      return res.status(400).json({ error: "Invalid email or password" });
     }
 
     // Generate JWT token
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET, // make sure JWT_SECRET exists in .env
-      { expiresIn: '1h' }
+      { expiresIn: "1h" }
     );
 
     // Send user info without password
     const { password: _, ...userData } = user.toJSON();
     res.status(200).json({ user: userData, token });
   } catch (err) {
-    res.status(500).json({ error: 'Server error', details: err.message });
+    res.status(500).json({ error: "Server error", details: err.message });
   }
 };
 
 export const getUserTrade = async (req, res) => {
   try {
-    const trades = await Trade.findAll(
-      {
-        where:
-        {
-          initiatorId: req.params.userId
-        },
-        include: [
-          { model: User, as: "initiator" },
-          { model: User, as: "buyer" },
-          { model: User, as: "seller" },
-          { model: CommoditiesList },
-          { model: Notes },
-          { model: TradeNature },
-          { model: PaymentEnum },
-        ],
-        order: [["createdAt", req.params.order]],
-        raw: false,
-        nest: true
-      }
-    );
-     const responseDatas = trades.map(trade => {
+    const trades = await Trade.findAll({
+      where: {
+        initiatorId: req.params.userId,
+      },
+      include: [
+        { model: User, as: "initiator" },
+        { model: Party, as: "buyer" },
+        { model: Party, as: "seller" },
+        { model: CommoditiesList },
+        { model: Notes },
+        { model: TradeNature },
+        { model: PaymentEnum },
+      ],
+      order: [["createdAt", req.params.order]],
+      raw: false,
+      nest: true,
+    });
+    const responseDatas = trades.map((trade) => {
       const t = trade.get({ plain: true }); // ✅ makes associations accessible
-      console.log(">>>>",t)
+      console.log(">>>>", t);
       return {
         tradeId: t.id,
         initiator: { id: t.initiator?.id, value: t.initiator?.username },
         //FROM
         fromId: { id: t.buyer?.id, value: t.buyer?.username },
-        fromRate:{id:null, value:t.fromRate},
-        fromQuantity:{id:null , value:t.fromQuantity},
-        fromTotal:{id:null , value:t.fromTotal},
+        fromRate: { id: null, value: t.fromRate },
+        fromQuantity: { id: null, value: t.fromQuantity },
+        fromTotal: { id: null, value: t.fromTotal },
         //To
         toId: { id: t.seller?.id, value: t.seller?.username },
-        toRate:{id:null, value:t.toRate},
-        toQuantity:{id:null , value:t.toQuantity},
-        toTotal:{id:null , value:t.toTotal},
+        toRate: { id: null, value: t.toRate },
+        toQuantity: { id: null, value: t.toQuantity },
+        toTotal: { id: null, value: t.toTotal },
         //Profit
-        profit:{id:null,value:t.profit},
-        commodity: { id: t.CommoditiesList?.id, value: t.CommoditiesList?.name },
+        profit: { id: null, value: t.profit },
+        commodity: {
+          id: t.CommoditiesList?.id,
+          value: t.CommoditiesList?.name,
+        },
         paymentStatus: { id: t.PaymentEnum?.id, value: t.PaymentEnum?.status },
-        note : t.note,
+        note: t.note,
         createdAt: t.createdAt,
       };
     });
     res.json(responseDatas);
   } catch (error) {
     res.status(500).json({ error: error.message });
-
   }
-}
+};
 
 export const getUserBalance = async (req, res) => {
   try {
-    const userBalance = await User.findOne({ where: { id: req.params.userId } });
+    const userBalance = await User.findOne({
+      where: { id: req.params.userId },
+    });
     if (!userBalance) {
       return res.status(404).json({ error: "User balance not found" });
     }
     res.status(200).json({ balance: userBalance.openingBalance });
-  } catch (error) {
-
-  }
-}
+  } catch (error) {}
+};
 
 export const getUserHoldings = async (req, res) => {
   try {
@@ -314,7 +341,9 @@ export const getUserHoldings = async (req, res) => {
     });
 
     if (!holding || holding.length === 0) {
-      return res.status(404).json({ message: "No holdings found for the user." });
+      return res
+        .status(404)
+        .json({ message: "No holdings found for the user." });
     }
 
     const formattedHoldings = holding[0].CommoditiesStorages.map((cs) => ({
@@ -327,11 +356,19 @@ export const getUserHoldings = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-}
+};
 
 export const createCustomer = async (req, res) => {
   try {
-    const { username, password,mobile,altMobile,whatApp, role, openingBalance} = req.body;
+    const {
+      username,
+      password,
+      mobile,
+      altMobile,
+      whatApp,
+      role,
+      openingBalance,
+    } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ where: { username } });
@@ -343,7 +380,7 @@ export const createCustomer = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Get 'customer' role
-    const getRole = await Role.findOne({ where: { name: 'party' } });
+    const getRole = await Role.findOne({ where: { name: "party" } });
     if (!getRole) {
       return res.status(400).json({ error: "Customer role not found" });
     }
@@ -351,19 +388,71 @@ export const createCustomer = async (req, res) => {
     // Create User
     const user = await User.create({
       username: username,
-      mobile:mobile,
-      altMobile:altMobile,
-      whatApp:whatApp,
-      openingBalance:openingBalance,
+      mobile: mobile,
+      altMobile: altMobile,
+      whatApp: whatApp,
+      openingBalance: openingBalance,
       password: hashedPassword,
       role: getRole.id,
       currencyFormat: 1,
     });
-
 
     const { password: _, ...userData } = user.toJSON();
     res.status(201).json({ user: userData });
   } catch (err) {
     res.status(400).json({ error: err.message, details: err.errors });
   }
-}
+};
+
+export const createParty = async (req, res) => {
+  try {
+    const { username, underUser, mobile, altMobile, whatApp, openingBalance } =
+      req.body;
+
+    // Check if user already exists
+    const existingUser = await Party.findOne({ where: { username , underUser} });
+    if (existingUser) {
+      return res.status(400).json({ error: "Username already in use" });
+    }
+    // Get 'customer' role
+
+    // Create User
+    const user = await Party.create({
+      username: username,
+      mobile: mobile,
+      altMobile: altMobile,
+      whatApp: whatApp,
+      openingBalance: openingBalance,
+      currencyFormat: 1,
+      underUser: underUser,
+    });
+
+    const { password: _, ...userData } = user.toJSON();
+    res.status(201).json({ user: userData });
+  } catch (err) {
+    res.status(400).json({ error: err.message, details: err.errors });
+  }
+};
+
+export const getAllParty = async (req, res) => {
+  try {
+    const allPartyList = await Party.findAll({
+      where: { underUser: req.params.userId },
+    });
+    const modified = allPartyList.map((party) => ({
+      ...party.toJSON(),
+      balance: party.openingBalance,
+      openingBalance: undefined,
+    }));
+    res.status(200).json({
+      count: modified.length,
+      users: modified,
+    });
+  } catch (error) {
+    console.error("Error fetching party:", err);
+    res.status(500).json({
+      error: "Failed to fetch party.",
+      details: err.message,
+    });
+  }
+};

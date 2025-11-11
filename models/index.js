@@ -9,6 +9,7 @@ import CommoditiesStorage from "./commoditiesStorage.model.js";
 import Notes from "./notes.model.js";
 import UserBalance from "./userBalance.model.js";
 import CurrencyFormat from "./currencyFormat.model.js";
+import Party from "./party.model.js"
 
 // 1️⃣ USER ↔ ROLE
 User.belongsTo(Role, { foreignKey: "role" });
@@ -23,8 +24,8 @@ CommoditiesStorage.belongsTo(CommoditiesList, { foreignKey: "commoditiesId" });
 
 // 4️⃣ TRADE ↔ USERS (Initiator / Partner)
 Trade.belongsTo(User, { as: "initiator", foreignKey: "initiatorId" });
-Trade.belongsTo(User, { as: "seller", foreignKey: "toId" });
-Trade.belongsTo(User, { as: "buyer", foreignKey: "fromId" });
+Trade.belongsTo(Party, { as: "seller", foreignKey: "toId" });
+Trade.belongsTo(Party, { as: "buyer", foreignKey: "fromId" });
 
 // 5️⃣ TRADE ↔ COMMODITIES
 Trade.belongsTo(CommoditiesList, { foreignKey: "commoditiesId" });
@@ -56,4 +57,5 @@ export {
   Notes,
   UserBalance,
   CurrencyFormat,
+  Party
 };

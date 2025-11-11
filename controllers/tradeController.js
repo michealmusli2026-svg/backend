@@ -8,6 +8,7 @@ import {
   CommoditiesStorage,
   UserBalance,
   sequelize,
+  Party,
 } from "../models/index.js";
 import Decimal from "decimal.js";
 
@@ -15,8 +16,8 @@ export const getAllTrades = async (req, res) => {
   try {
     const trades = await Trade.findAll({
       include: [
-        { model: User, as: "buyer" },
-        { model: User, as: "seller" },
+        { model: Party, as: "buyer" },
+        { model: Party, as: "seller" },
         { model: User, as: "initiator" },
         { model: CommoditiesList },
         { model: Notes },

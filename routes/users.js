@@ -1,5 +1,5 @@
 import express from "express";
-import { getAllUsers, createUser, loginUser, getUserTrade, getUserBalance, getUserHoldings, createCustomer } from "../controllers/userController.js";
+import { getAllUsers, createUser, loginUser, getUserTrade, getUserBalance, getUserHoldings, createCustomer,createParty, getAllParty } from "../controllers/userController.js";
 import { updateBalance } from "../controllers/balanceController.js";
 const router = express.Router();
 
@@ -11,5 +11,7 @@ router.get("/trade/:userId/:order",getUserTrade)
 router.get("/balance/:userId",getUserBalance)
 router.get("/holdings/:userId",getUserHoldings)
 router.post("/createCustomer",createCustomer)
+router.post("/create/party",createParty)
+router.get("/party/:userId",getAllParty)
 
 export default router;
