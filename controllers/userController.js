@@ -133,7 +133,7 @@ export const createUser = async (req, res) => {
       commoditiesHolding,
       currencyFormat,
     } = req.body;
-    console.log("Creating user with data:", req.body);
+    // console.log("Creating user with data:", req.body);
     // Check if user already exists
     const existingUser = await User.findOne({ where: { username } });
     if (existingUser) {
@@ -187,11 +187,11 @@ export const createUser = async (req, res) => {
       const validCommodities = await CommoditiesList.findAll({
         where: { id: commoditiesHoldingIds },
       });
-      console.log(
-        "Valid Commodities:",
-        validCommodities.length,
-        commoditiesHolding.length
-      );
+      // console.log(
+      //   "Valid Commodities:",
+      //   validCommodities.length,
+      //   commoditiesHolding.length
+      // );
       // You can then verify that all requested commodities exist
       if (validCommodities.length !== commoditiesHolding.length) {
         return res.status(400).json({
@@ -261,10 +261,24 @@ export const loginUser = async (req, res) => {
 
 export const getUserTrade = async (req, res) => {
   try {
-    const trades = await Trade.findAll({
-      where: {
+    const filter = {
+      // where:{
         initiatorId: req.params.userId,
-      },
+        // completed: req.params.complete,
+        deleted:false
+      // }
+    }
+    if(req.params.complete !== "null"){
+      filter["completed"] = req.params.complete == 'true' ? true : false
+    }
+    console.log("dasd",filter)
+    const trades = await Trade.findAll({
+      where: filter,
+      // {
+      //   initiatorId: req.params.userId,
+      //   completed: req.params.complete,
+      //   deleted:false
+      // },
       include: [
         { model: User, as: "initiator" },
         { model: Party, as: "buyer" },
@@ -280,7 +294,7 @@ export const getUserTrade = async (req, res) => {
     });
     const responseDatas = trades.map((trade) => {
       const t = trade.get({ plain: true }); // ✅ makes associations accessible
-      console.log(">>>>", t);
+      // console.log(">>>>", t);
       return {
         tradeId: t.id,
         initiator: { id: t.initiator?.id, value: t.initiator?.username },
@@ -301,6 +315,7 @@ export const getUserTrade = async (req, res) => {
           value: t.CommoditiesList?.name,
         },
         paymentStatus: { id: t.PaymentEnum?.id, value: t.PaymentEnum?.status },
+        completed:t.completed,
         note: t.note,
         createdAt: t.createdAt,
       };
@@ -454,5 +469,26 @@ export const getAllParty = async (req, res) => {
       error: "Failed to fetch party.",
       details: err.message,
     });
+  }
+};
+
+export const updateTrade = async (req, res) => {
+  try {
+    const { id } = req.body; // trade ID from URL params
+
+    // Update the trade record
+    const [updatedCount] = await Trade.update(
+      { completed: true },
+      { where: { id } }
+    );
+
+    if (updatedCount === 0) {
+      return res.status(404).json({ message: "Trade not found or already completed." });
+    }
+
+    return res.status(200).json({ message: "Trade marked as completed successfully." });
+  } catch (error) {
+    console.error("Error updating trade:", error);
+    return res.status(500).json({ message: "Internal server error.", error: error.message });
   }
 };

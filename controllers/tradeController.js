@@ -45,7 +45,7 @@ export const getAllTrades = async (req, res) => {
     // }))
     const responseDatas = trades.map(trade => {
       const t = trade.get({ plain: true }); // ✅ makes associations accessible
-      console.log(">>>>",t)
+      // console.log(">>>>",t)
       return {
         tradeId: t.id,
         initiator: { id: t.initiator?.id, value: t.initiator?.username },
@@ -922,14 +922,42 @@ export const executeTrade = async (req, res) => {
   }
 };
 
+// export const deleteTrade = async (req, res) => {
+//   try {
+//     const { id } = req.params; // get trade ID from request params
+
+//     // Delete the trade
+//     // const deletedCount = await Trade.updated({
+//     //   where: { id: id }, // assuming your primary key is tradeId
+//     // });
+
+//     const deletedCount = await Trade.update({
+//   where: { id },
+//   data: { deleted: true },
+// });
+
+
+//     if (deletedCount === 0) {
+//       return res.status(404).json({ message: "Trade not found" });
+//     }
+
+//     res.status(200).json({ message: "Trade deleted successfully" });
+//   } catch (error) {
+//     console.error("Error deleting trade:", error);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// };
+
+
 export const deleteTrade = async (req, res) => {
   try {
-    const { id } = req.params; // get trade ID from request params
+    const { id } = req.params;
 
-    // Delete the trade
-    const deletedCount = await Trade.destroy({
-      where: { id: id }, // assuming your primary key is tradeId
-    });
+    // Update the 'deleted' field to true where id matches
+    const [deletedCount] = await Trade.update(
+      { deleted: true },
+      { where: { id } }
+    );
 
     if (deletedCount === 0) {
       return res.status(404).json({ message: "Trade not found" });
@@ -941,7 +969,6 @@ export const deleteTrade = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 export const updateNote = async (req, res) => {
   try {

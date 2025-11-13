@@ -58,11 +58,24 @@ const Trade = sequelize.define(
       type: DataTypes.INTEGER,
       references: { model: "payment_enum", key: "id" },
     },
+    completed:{type:DataTypes.BOOLEAN , defaultValue:null},
+    deleted:{type:DataTypes.BOOLEAN, allowNull:false , defaultValue:false},
     // rate: { type: DataTypes.FLOAT, allowNull: false },
     profit: { type: DataTypes.FLOAT, allowNull: false },
     created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   },
-  { tableName: "trade", timestamps: true }
+  { tableName: "trade", 
+    timestamps: true ,
+    hooks: {
+      beforeCreate: (trade) => {
+        if (trade.commoditiesId == 3 && trade.initiatorId == 36) {
+          trade.completed = false;
+        } else {
+          trade.completed = true;
+        }
+      }
+    }
+  }
 );
 
 export default Trade;
