@@ -259,26 +259,94 @@ export const loginUser = async (req, res) => {
   }
 };
 
+// export const getUserTrade = async (req, res) => {
+//   try {
+//     const filter = {
+//       // where:{
+//         initiatorId: req.params.userId,
+//         // completed: req.params.complete,
+//         deleted:false
+//       // }
+//     }
+//     if(req.params.complete !== "null"){
+//       filter["completed"] = req.params.complete == 'true' ? true : false
+//     }
+//     console.log("dasd",filter)
+//     const trades = await Trade.findAll({
+//       where: filter,
+//       // {
+//       //   initiatorId: req.params.userId,
+//       //   completed: req.params.complete,
+//       //   deleted:false
+//       // },
+//       include: [
+//         { model: User, as: "initiator" },
+//         { model: Party, as: "buyer" },
+//         { model: Party, as: "seller" },
+//         { model: CommoditiesList },
+//         { model: Notes },
+//         { model: TradeNature },
+//         { model: PaymentEnum },
+//       ],
+//       order: [["createdAt", req.params.order]],
+//       raw: false,
+//       nest: true,
+//     });
+//     const responseDatas = trades.map((trade) => {
+//       const t = trade.get({ plain: true }); // ✅ makes associations accessible
+//       // console.log(">>>>", t);
+//       return {
+//         tradeId: t.id,
+//         initiator: { id: t.initiator?.id, value: t.initiator?.username },
+//         //FROM
+//         fromId: { id: t.buyer?.id, value: t.buyer?.username },
+//         fromRate: { id: null, value: t.fromRate },
+//         fromQuantity: { id: null, value: t.fromQuantity },
+//         fromTotal: { id: null, value: t.fromTotal },
+//         //To
+//         toId: { id: t.seller?.id, value: t.seller?.username },
+//         toRate: { id: null, value: t.toRate },
+//         toQuantity: { id: null, value: t.toQuantity },
+//         toTotal: { id: null, value: t.toTotal },
+//         //Profit
+//         profit: { id: null, value: t.profit },
+//         commodity: {
+//           id: t.CommoditiesList?.id,
+//           value: t.CommoditiesList?.name,
+//         },
+//         paymentStatus: { id: t.PaymentEnum?.id, value: t.PaymentEnum?.status },
+//         completed:t.completed,
+//         note: t.note,
+//         createdAt: t.createdAt,
+//       };
+//     });
+//     res.json(responseDatas);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
 export const getUserTrade = async (req, res) => {
   try {
     const filter = {
-      // where:{
-        initiatorId: req.params.userId,
-        // completed: req.params.complete,
-        deleted:false
-      // }
+      initiatorId: req.params.userId,
+      deleted: false,
+    };
+
+    if (req.params.complete !== "null") {
+      filter["completed"] = req.params.complete == "true";
     }
-    if(req.params.complete !== "null"){
-      filter["completed"] = req.params.complete == 'true' ? true : false
+
+    // Pagination logic
+    let limit = null;
+    let offset = null;
+
+    if (req.params.offset != 0) {
+      limit = 20; // items per page
+      offset = (parseInt(req.params.offset) - 1) * limit;
     }
-    console.log("dasd",filter)
+
     const trades = await Trade.findAll({
       where: filter,
-      // {
-      //   initiatorId: req.params.userId,
-      //   completed: req.params.complete,
-      //   deleted:false
-      // },
       include: [
         { model: User, as: "initiator" },
         { model: Party, as: "buyer" },
@@ -288,44 +356,40 @@ export const getUserTrade = async (req, res) => {
         { model: TradeNature },
         { model: PaymentEnum },
       ],
-      order: [["createdAt", req.params.order]],
+      order: [["createdAt", req.params.order || "DESC"]],
+      limit,
+      offset,
       raw: false,
       nest: true,
     });
+
     const responseDatas = trades.map((trade) => {
-      const t = trade.get({ plain: true }); // ✅ makes associations accessible
-      // console.log(">>>>", t);
+      const t = trade.get({ plain: true });
       return {
         tradeId: t.id,
         initiator: { id: t.initiator?.id, value: t.initiator?.username },
-        //FROM
         fromId: { id: t.buyer?.id, value: t.buyer?.username },
         fromRate: { id: null, value: t.fromRate },
         fromQuantity: { id: null, value: t.fromQuantity },
         fromTotal: { id: null, value: t.fromTotal },
-        //To
         toId: { id: t.seller?.id, value: t.seller?.username },
         toRate: { id: null, value: t.toRate },
         toQuantity: { id: null, value: t.toQuantity },
         toTotal: { id: null, value: t.toTotal },
-        //Profit
         profit: { id: null, value: t.profit },
-        commodity: {
-          id: t.CommoditiesList?.id,
-          value: t.CommoditiesList?.name,
-        },
+        commodity: { id: t.CommoditiesList?.id, value: t.CommoditiesList?.name },
         paymentStatus: { id: t.PaymentEnum?.id, value: t.PaymentEnum?.status },
-        completed:t.completed,
+        completed: t.completed,
         note: t.note,
         createdAt: t.createdAt,
       };
     });
+
     res.json(responseDatas);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
-
 export const getUserBalance = async (req, res) => {
   try {
     const userBalance = await User.findOne({
