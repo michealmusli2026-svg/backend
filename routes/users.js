@@ -7,7 +7,7 @@ router.get("/", getAllUsers);
 router.post("/", createUser);
 router.post("/login",loginUser)
 router.post("/updateBalance",updateBalance)
-router.get("/trade/:userId/:order/:complete",getUserTrade)
+router.get("/trade/:userId/:order/:complete/:offset",getUserTrade)
 router.get("/balance/:userId",getUserBalance)
 router.get("/holdings/:userId",getUserHoldings)
 router.post("/createCustomer",createCustomer)
