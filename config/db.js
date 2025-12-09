@@ -8,7 +8,7 @@ const sequelize = new Sequelize(
   "root",
   "786@Imran",
   {
-    host: "13.232.164.240",
+    host: "13.201.41.207",
     dialect: "mysql",
     port: 3306,
     logging: false, // set true for SQL logs
