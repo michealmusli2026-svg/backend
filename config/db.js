@@ -3,28 +3,18 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+
 const sequelize = new Sequelize(
-  "trade_master_prod",
-  "root",
-  "786@Imran",
+  process.env.DATABASE_NAME,
+  process.env.DATABASE_USER,
+  process.env.DATABASE_PASSWORD,
   {
-    host: "13.201.41.207",
+    host: process.env.DATABASE_HOST,
     dialect: "mysql",
     port: 3306,
     logging: false, // set true for SQL logs
   }
 );
 
-// const sequelize = new Sequelize(
-//   "tradeMaster",
-//   "imran",
-//   "786imran",
-//   {
-//     host: "localhost",
-//     dialect: "mysql",
-//     port: 3306,
-//     logging: false, // set true for SQL logs
-//   }
-// );
 
 export default sequelize;

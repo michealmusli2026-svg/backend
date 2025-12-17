@@ -7,5 +7,7 @@ router.post("/", executeTrade);
 router.delete("/:id",deleteTrade)
 router.post("/save", saveTrade);
 router.post("/update",updateNote)
+// router.get("profit/:type/:")
+// router.get("balanceSheet",getBalanceSheet)
 
 export default router;

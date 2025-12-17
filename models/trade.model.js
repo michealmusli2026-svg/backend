@@ -62,9 +62,10 @@ const Trade = sequelize.define(
     deleted:{type:DataTypes.BOOLEAN, allowNull:false , defaultValue:false},
     // rate: { type: DataTypes.FLOAT, allowNull: false },
     profit: { type: DataTypes.FLOAT, allowNull: false },
+    enterDate : {type: DataTypes.DATE , allowNull:true} ,
     created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   },
-  { tableName: "trade", 
+  { tableName: "trade",
     timestamps: true ,
     hooks: {
       beforeCreate: (trade) => {

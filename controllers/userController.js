@@ -356,7 +356,7 @@ export const getUserTrade = async (req, res) => {
         { model: TradeNature },
         { model: PaymentEnum },
       ],
-      order: [["createdAt", req.params.order || "DESC"]],
+      order: [["enterDate", req.params.order || "DESC"]],
       limit,
       offset,
       raw: false,
@@ -382,9 +382,10 @@ export const getUserTrade = async (req, res) => {
         completed: t.completed,
         note: t.note,
         createdAt: t.createdAt,
+        enterDate: t.enterDate,
       };
     });
-
+    console.log("responseDatas",responseDatas)
     res.json(responseDatas);
   } catch (error) {
     res.status(500).json({ error: error.message });

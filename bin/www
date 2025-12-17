@@ -12,7 +12,7 @@ const debug = debugLib("backend:server");
  */
 const port = normalizePort(process.env.PORT || "3000");
 app.set("port", port);
-console.log("sad",process.env.DATABASE_URL)
+// console.log("sad",process.env.DATABASE_URL)
 
 /**
  * Create HTTP server.

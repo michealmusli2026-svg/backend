@@ -993,3 +993,234 @@ export const updateNote = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+export const getBalanceSheet = async(req,res)=>{
+  const users = await User.findAll({
+      include: [
+        {
+          model: Role,
+          attributes: ["name"],
+        },
+        {
+          model: UserBalance,
+          attributes: ["balance"],
+        },
+        {
+          model: CommoditiesStorage,
+          include: [
+            {
+              model: CommoditiesList,
+              attributes: ["id", "name"],
+            },
+          ],
+        },
+      ],
+      attributes: { exclude: ["password"] },
+      order: [["id", "ASC"]],
+    });
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ message: "No users found." });
+    }
+
+    // Transform data into a clean API structure
+    const formattedUsers = users.map((u) => ({
+      id: u.id,
+      username: u.username,
+      // email: u.email,
+      mobile: u.mobile,
+      altMobile: u.altMobile,
+      whatApp: u.whatApp,
+      role: u.Role?.name || "N/A",
+      balance: Number(u.openingBalance || 0),
+      holdings: (u.CommoditiesStorages || []).map((cs) => ({
+        commodityId: cs.CommoditiesList?.id,
+        commodityName: cs.CommoditiesList?.name,
+        quantity: cs.quantity,
+      })),
+      createdAt: u.createdAt,
+      updatedAt: u.updatedAt,
+
+    }));
+
+      const filter = {
+      initiatorId: req.params.userId,
+      deleted: false,
+    };
+
+    if (req.params.complete !== "null") {
+      filter["completed"] = req.params.complete == "true";
+    }
+
+    // Pagination logic
+    let limit = null;
+    let offset = null;
+
+    if (req.params.offset != 0) {
+      limit = 20; // items per page
+      offset = (parseInt(req.params.offset) - 1) * limit;
+    }
+
+    const trades = await Trade.findAll({
+      where: filter,
+      include: [
+        { model: User, as: "initiator" },
+        { model: Party, as: "buyer" },
+        { model: Party, as: "seller" },
+        { model: CommoditiesList },
+        { model: Notes },
+        { model: TradeNature },
+        { model: PaymentEnum },
+      ],
+      order: [["createdAt", req.params.order || "DESC"]],
+      limit,
+      offset,
+      raw: false,
+      nest: true,
+    });
+
+    const responseDatas = trades.map((trade) => {
+      const t = trade.get({ plain: true });
+      return {
+        tradeId: t.id,
+        initiator: { id: t.initiator?.id, value: t.initiator?.username },
+        fromId: { id: t.buyer?.id, value: t.buyer?.username },
+        fromRate: { id: null, value: t.fromRate },
+        fromQuantity: { id: null, value: t.fromQuantity },
+        fromTotal: { id: null, value: t.fromTotal },
+        toId: { id: t.seller?.id, value: t.seller?.username },
+        toRate: { id: null, value: t.toRate },
+        toQuantity: { id: null, value: t.toQuantity },
+        toTotal: { id: null, value: t.toTotal },
+        profit: { id: null, value: t.profit },
+        commodity: { id: t.CommoditiesList?.id, value: t.CommoditiesList?.name },
+        paymentStatus: { id: t.PaymentEnum?.id, value: t.PaymentEnum?.status },
+        completed: t.completed,
+        note: t.note,
+        createdAt: t.createdAt,
+        enterDate: t.enterDate,
+      };
+    });
+
+
+
+}
+
+ const groupedData = (formattedUsers) => {
+    const dailyPL = {};
+    let PLprofit = 0;
+    let PLexpense = 0;
+    formattedUsers.forEach((trade) => {
+      const date = new Date(trade.createdAt).toLocaleDateString("en-GB"); // DD/MM/YYYY
+
+      if (!dailyPL[date]) {
+        dailyPL[date] = {
+          "Total Profit": 0,
+          "Total Expense": 0,
+          "Total Services": 0,
+          "Total Loss": 0,
+        };
+      }
+      const from = trade.fromId.value;
+      const fromQuantity = Number(trade.fromQuantity.value);
+      const to = trade.toId.value;
+      const toQuantity = Number(trade.toQuantity.value);
+      const profit = trade.profit.value;
+      if (from == "Services") {
+        dailyPL[date]["Total Services"] =
+          (dailyPL[date]["Total Services"] || 0) - fromQuantity;
+        // Math.abs((dailyPL[date]["Total Services"] || 0) - fromQuantity);
+      }
+      if (to == "Services") {
+        dailyPL[date]["Total Services"] =
+          (dailyPL[date]["Total Services"] || 0) + toQuantity;
+      }
+      if (from == "Expense") {
+        dailyPL[date]["Total Expense"] =
+          (dailyPL[date]["Total Expense"] || 0) + fromQuantity;
+      }
+      if (to == "Expense") {
+        dailyPL[date]["Total Expense"] =
+          (dailyPL[date]["Total Expense"] || 0) + toQuantity;
+      }
+      if (to == "Loss") {
+        dailyPL[date]["Total Loss"] =
+          (dailyPL[date]["Total Loss"] || 0) + toQuantity;
+      }
+      dailyPL[date]["Total Profit"] =
+        (dailyPL[date]["Total Profit"] || 0) + profit;
+    });
+    return dailyPL;
+  };
+
+  function addOpeningBalance(users, balances) {
+    return users
+      ?.map((user) => {
+        const name = user.username;
+        const balanceData = balances[name];
+
+        if (balanceData) {
+          const { received, paid } = balanceData;
+
+          // Compute opening balance
+          //   const openingBalance = received - paid;
+
+          return {
+            name,
+            // received,
+            // paid,
+            // openingBalance,
+            updatedBalance: received - paid + user.balance,
+          };
+        }
+
+        // If no matching balance entry found
+        return {
+          name,
+          //   received: 0,
+          //   paid: 0,
+          //   openingBalance: 0,
+          updatedBalance: user.balance || 0,
+        };
+      })
+      .filter((user) => user.updatedBalance !== 0);
+  }
+
+   const balances = (formattedUsers) => {
+    const ledger = {};
+    formattedUsers?.forEach((trade) => {
+      const from = trade.fromId.value;
+      const to = trade.toId.value;
+      const fromTotal = Number(trade.fromTotal.value);
+      const toTotal = Number(trade.toTotal.value);
+      // if(from !=="Expense" && from !=="Services" && to !=="Expense" && to !=="Services"){
+      // Initialize accounts if missing
+      if (!ledger[from]) ledger[from] = { received: 0, paid: 0 };
+      if (!ledger[to]) ledger[to] = { received: 0, paid: 0 };
+
+      // Update totals
+      ledger[from].paid += fromTotal;
+      ledger[to].received += toTotal;
+      // }
+    });
+    delete ledger["Expense"];
+    delete ledger["Services"];
+    delete ledger["Profit"];
+    delete ledger["Loss"];
+    const openingBalance = addOpeningBalance(partyUsers, ledger);
+
+    const debitors = openingBalance?.filter((item) => item.updatedBalance > 0);
+    const creditors = openingBalance?.filter((item) => item.updatedBalance < 0);
+    const debitTotal = debitors?.reduce(
+      (sum, item) => sum + item.updatedBalance,
+      0
+    );
+    const creditTotal = creditors?.reduce(
+      (sum, item) => sum + item.updatedBalance,
+      0
+    );
+    // return openingBalance;
+    return { debitTotal, creditTotal };
+    // return { debitTotal, creditTotal };
+  };
